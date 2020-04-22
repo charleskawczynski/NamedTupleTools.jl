@@ -21,6 +21,19 @@ propertytupletype(nt::NamedTuple{N,T}) where {N,T} = T
 propertytypes(nt::NamedTuple{N,T}) where {N,T} = (T.parameters...,)
 propertyvalues(nt::NamedTuple{N,T}) where {N,T} = values(nt)
 
+ntnames(::Type{NamedTuple{N,T}}) where {N,T} = N
+nttupletype(::Type{NamedTuple{N,T}}) where {N,T} = T
+nttypes(::Type{NamedTuple{N,T}}) where {N,T} = (T.parameters...,)
+ntnames(nt::NamedTuple{N,T}) where {N,T} = N
+nttupletype(nt::NamedTuple{N,T}) where {N,T} = T
+nttypes(nt::NamedTuple{N,T}) where {N,T} = (T.parameters...,)
+ntvalues(nt::NamedTuple{N,T}) where {N,T} = values(nt)
+
+ntfirst(nt::NamedTuple{N,T}) where {N,T} = let S=Tuple{T.parameters[1]}
+    NamedTuple{(first(N),),S}((first(nt),))
+end
+ntfirst(nt::NamedTuple{(),Tuple{}}) = NamedTuple()
+
 #=
 To get the values from a NamedTuple as a Tuple, use `values(nt)`.
 To get the symbols from a NamedTuple as a Tuple, use 
