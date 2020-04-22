@@ -2,24 +2,28 @@
      NamedTupleTools
 
 This module provides some useful NamedTuple tooling.
-
-see [`namedtuple`](@ref), [`isprototype`](@ref),
-    [`fieldnames`](@ref), [`fieldtypes`](@ref), [`fieldvalues`](@ref)
-    [`delete`](@ref), [`merge`](@ref)
 """
 module NamedTupleTools
 
-export @namedtuple,
-       namedtuple, isprototype, prototype,
-       propertynames, fieldnames, fieldvalues, fieldtypes,
-       merge,
-       split,
-       delete,
-       select,
-       ntfromstruct, structfromnt,
-       @structfromnt
+export propertytypes, propertyvalues
 
-import Base: propertynames, fieldnames, valtype, values, merge, split
+import Base: propertynames, values, tail, front, 
+    valtype, merge, split, fieldnames, fieldtypes, fieldvalues,
+    getindex
+
+fieldnames(::Type{NamedTuple{N,T}}) where {N,T} = N
+fieldtupletype(::Type{NamedTuple{N,T}}) where {N,T} = T
+fieldtypes(::Type{NamedTuple{N,T}}) where {N,T} = (T.parameters...,)
+fieldvalues(nt::NamedTuple{N,T}) where {N,T} = values(nt)
+
+propertynames(nt::NamedTuple{N,T}) where {N,T} = N
+propertytupletype(nt::NamedTuple{N,T}) where {N,T} = T
+propertytypes(nt::NamedTuple{N,T}) where {N,T} = (T.parameters...,)
+propertyvalues(nt::NamedTuple{N,T}) where {N,T} = values(nt)
+
+#=
+To get the values from a NamedTuple as a Tuple, use `values(nt)`.
+To get the symbols from a NamedTuple as a Tuple, use 
 
 if isdefined(Base, :fieldtypes)
      import Base: fieldtypes
@@ -32,6 +36,15 @@ NamedTuple{T}(xs...) where {T} = NamedTuple{T}(xs)
 
 propertynames(nt::NamedTuple{N,T}) where {N,T} = N   # correct
 fieldnames(nt::NamedTuple{N,T}) where {N,T} = N      # deprecate
+
+Base.getindex(nt::NamedTuple{N,T}, idxs::UnitRange) where {N,T} = getindex(values(nt), idxs)
+    
+ntfirst(nt::T) where T<:NamedTuple = NamedTuple{(first(propertynames(nt)),),Tuple{typeof(first(nt))}}(first(nt))
+ntlast(nt::T) where T<:NamedTuple = NamedTuple{(last(propertynames(nt)),),Tuple{typeof(last(nt))}}(last(nt))
+nttail(nt::T) where T<:NamedTuple = NamedTuple{(tail(propertynames(nt)),),Tuple{typeof.(tail(nt))}}(tail(nt))
+Base.front(nt::NamedTuple{N,T}) where {N,T} = nt[2:end]
+ntfront(nt::T) where T<:NamedTuple = NamedTuple{(front(propertynames(nt)),),Tuple{typeof.(front(nt))}}(front(nt))
+
 
 """
     fieldvalues
