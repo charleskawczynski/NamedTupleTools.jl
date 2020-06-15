@@ -28,13 +28,6 @@ else
      export fieldtypes
 end
 
-"""
-    NotPresent
-
-To indicate certain entries do not exist in the namedtuple.
-"""
-struct NotPresent end
-
 # accept comma delimited values
 NamedTuple{T}(xs...) where {T} = NamedTuple{T}(xs)
 
@@ -79,9 +72,6 @@ valtype(x::T) where {N,S, T<:NamedTuple{N,S}} = T.parameters[2]
 valtype(::Type{T}) where {N, S<:Tuple, T<:Union{NamedTuple{N},NamedTuple{N,S}}} =
     typeof(T) === UnionAll ? NTuple{lengthof(N),Any} : T.parameters[2]
 
-
-
-
 """
     untuple( Tuple{_} )
 
@@ -89,15 +79,12 @@ Retrieve the types that are internal to the `Tuple` as a (_).
 """
 untuple(::Type{T}) where {T<:Tuple} = (T.parameters...,)
 
-
 """
     retuple( (_) )
 
 Generate a `Tuple` with the given internal types as a `Tuple{_}`.
 """
 retuple(x::Tuple) = Tuple{x...,}
-
-
 
 namedtuple(x::DataType) = ntfromstruct(x)
 
@@ -167,7 +154,6 @@ namedtuple(namesforvalues::Vector{S}, valuesfornames) where {N,S<:AbstractString
 
 namedtuple(namesforvalues::NTuple{N,S}, valuesfornames) where {N,S<:AbstractString} =
     namedtuple(Symbol.(namesforvalues), valuesfornames)
-
 
 """
     namedtuple(  name1, name2, ..  )
@@ -269,69 +255,98 @@ select(nt::NamedTuple, k::Symbol) = nt[k]
 select(nt::NamedTuple, k::NamedTuple) = select(nt, keys(k))
 select(nt::NamedTuple, ks) = namedtuple(ks)(((nt[k] for k in ks)...,))
 
-
 """
-    merge(namedtuple1, namedtuple2)
-    merge(nt1, nt2, nt3, ..)
+    merge(namedtuple1, namedtuple2; recursive=false)
+    merge(nt1, nt2, nt3, nts...; recursive=false)
 
 Generate a namedtuple with all fieldnames and values of namedtuple2
     and every fieldname of namedtuple1 that does not occur in namedtuple2
     along with their values.
 
+When the keyword `recursive` is set to `true`, merge behaves differently,
+    gathering `key => value` pairs from each `NamedTuple` argument and 
+    where keys match, promulgating the value obtained from the `NamedTuple`
+    with the most recently matched key.  
+
+If there are no nested namedtuples, `merge(nt1, nts...)` is the same as `merge(nt1, nts.., recursive=true)`.
+
+    For examples, see: [`merge_recursive`](@ref)
+
 see: [`delete!`](@ref)
 """
-merge(::Type{T1}, ::Type{T2}) where {N1,N2,T1<:NamedTuple{N1},T2<:NamedTuple{N2}} =
-    namedtuple((unique((N1..., N2...,))...,))
-merge(::Type{T1}, ::Type{T2}, ::Type{T3}) where {N1,N2,N3,T1<:NamedTuple{N1},T2<:NamedTuple{N2},T3<:NamedTuple{N3}} =
-    namedtuple((unique((N1..., N2..., N3...,))...,))
-merge(::Type{T1}, ::Type{T2}, ::Type{T3}, ::Type{T4}) where {N1,N2,N3,N4,T1<:NamedTuple{N1},T2<:NamedTuple{N2},T3<:NamedTuple{N3},T4<:NamedTuple{N4}} =
-    namedtuple((unique((N1..., N2..., N3..., N4...,))...,))
-merge(::Type{T1}, ::Type{T2}, ::Type{T3}, ::Type{T4}, ::Type{T5}) where {N1,N2,N3,N4,N5,T1<:NamedTuple{N1},T2<:NamedTuple{N2},T3<:NamedTuple{N3},T4<:NamedTuple{N4},T5<:NamedTuple{N5}} =
-    namedtuple((unique((N1..., N2..., N3..., N4..., N5...,))...,))
-merge(::Type{T1}, ::Type{T2}, ::Type{T3}, ::Type{T4}, ::Type{T5}, ::Type{T6}) where {N1,N2,N3,N4,N5,N6,T1<:NamedTuple{N1},T2<:NamedTuple{N2},T3<:NamedTuple{N3},T4<:NamedTuple{N4},T5<:NamedTuple{N5},T6<:NamedTuple{N6}} =
-    namedtuple((unique((N1..., N2..., N3..., N4..., N5..., N6...,))...,))
-merge(::Type{T1}, ::Type{T2}, ::Type{T3}, ::Type{T4}, ::Type{T5}, ::Type{T6}, ::Type{T7}) where {N1,N2,N3,N4,N5,N6,N7,T1<:NamedTuple{N1},T2<:NamedTuple{N2},T3<:NamedTuple{N3},T4<:NamedTuple{N4},T5<:NamedTuple{N5},T6<:NamedTuple{N6},T7<:NamedTuple{N7}} =
-    namedtuple((unique((N1..., N2..., N3..., N4..., N5..., N6...,N7...))...,))
+merge(::Type{T1}, ::Type{T2}; recursive::Bool=false) where {N1,N2,T1<:NamedTuple{N1},T2<:NamedTuple{N2}} =
+    recursive ? merge_recursive(T1, T2) : namedtuple((unique((N1..., N2...,))...,))
+merge(::Type{T1}, ::Type{T2}, ::Type{T3}; recursive::Bool=false) where {N1,N2,N3,T1<:NamedTuple{N1},T2<:NamedTuple{N2},T3<:NamedTuple{N3}} =
+    recursive ? merge_recursive(T1, T2, T3) : namedtuple((unique((N1..., N2..., N3...,))...,))
+merge(::Type{T1}, ::Type{T2}, ::Type{T3}, ::Type{T4}; recursive::Bool=false) where {N1,N2,N3,N4,T1<:NamedTuple{N1},T2<:NamedTuple{N2},T3<:NamedTuple{N3},T4<:NamedTuple{N4}} =
+    recursive ? merge_recursive(T1, T2, T3, T4) : namedtuple((unique((N1..., N2..., N3..., N4...,))...,))
+merge(::Type{T1}, ::Type{T2}, ::Type{T3}, ::Type{T4}, ::Type{T5}; recursive::Bool=false) where {N1,N2,N3,N4,N5,T1<:NamedTuple{N1},T2<:NamedTuple{N2},T3<:NamedTuple{N3},T4<:NamedTuple{N4},T5<:NamedTuple{N5}} =
+    recursive ? merge_recursive(T1, T2, T3, T4, T5) : namedtuple((unique((N1..., N2..., N3..., N4..., N5...,))...,))
+merge(::Type{T1}, ::Type{T2}, ::Type{T3}, ::Type{T4}, ::Type{T5}, ::Type{T6}; recursive::Bool=false) where {N1,N2,N3,N4,N5,N6,T1<:NamedTuple{N1},T2<:NamedTuple{N2},T3<:NamedTuple{N3},T4<:NamedTuple{N4},T5<:NamedTuple{N5},T6<:NamedTuple{N6}} =
+    recursive ? merge_recursive(T1, T2, T3, T4, T5, T6) : namedtuple((unique((N1..., N2..., N3..., N4..., N5..., N6...,))...,))
+merge(::Type{T1}, ::Type{T2}, ::Type{T3}, ::Type{T4}, ::Type{T5}, ::Type{T6}, ::Type{T7}; recursive::Bool=false) where {N1,N2,N3,N4,N5,N6,N7,T1<:NamedTuple{N1},T2<:NamedTuple{N2},T3<:NamedTuple{N3},T4<:NamedTuple{N4},T5<:NamedTuple{N5},T6<:NamedTuple{N6},T7<:NamedTuple{N7}} =
+    recursive ? merge_recursive(T1, T2, T3, T4, T5, T6, T7) : namedtuple((unique((N1..., N2..., N3..., N4..., N5..., N6...,N7...))...,))
 
 # merge(nt1::T1, nt2::T2) where {T1<:NamedTuple, T2<:NamedTuple} is already defined
 
-merge(a::NamedTuple{an}, b::NamedTuple{bn}, c::NamedTuple{cn}) where {an, bn, cn} =
-    reduce(merge,(a, b, c))
-merge(a::NamedTuple{an}, b::NamedTuple{bn}, c::NamedTuple{cn}, d::NamedTuple{dn}) where {an, bn, cn, dn} =
-    reduce(merge,(a, b, c, d))
-merge(a::NamedTuple{an}, b::NamedTuple{bn}, c::NamedTuple{cn}, d::NamedTuple{dn}, e::NamedTuple{en}) where {an, bn, cn, dn, en} =
-    reduce(merge,(a, b, c, d, e))
-merge(a::NamedTuple{an}, b::NamedTuple{bn}, c::NamedTuple{cn}, d::NamedTuple{dn}, e::NamedTuple{en}, f::NamedTuple{fn}) where {an, bn, cn, dn, en, fn} =
-    reduce(merge,(a, b, c, d, e, f))
-merge(a::NamedTuple{an}, b::NamedTuple{bn}, c::NamedTuple{cn}, d::NamedTuple{dn}, e::NamedTuple{en}, f::NamedTuple{fn}, g::NamedTuple{gn}) where {an, bn, cn, dn, en, fn, gn} =
-    reduce(merge,(a, b, c, d, e, f, g))
+merge(a::NamedTuple{an}, b::NamedTuple{bn}, c::NamedTuple{cn}; recursive::Bool=false) where {an, bn, cn} =
+    recursive ? reduce(merge_recursive(a, b, c)) : reduce(merge,(a, b, c))
+merge(a::NamedTuple{an}, b::NamedTuple{bn}, c::NamedTuple{cn}, d::NamedTuple{dn}; recursive::Bool=false) where {an, bn, cn, dn} =
+    recursive ? reduce(merge_recursive(a, b, c, d)) : reduce(merge,(a, b, c, d))
+merge(a::NamedTuple{an}, b::NamedTuple{bn}, c::NamedTuple{cn}, d::NamedTuple{dn}, e::NamedTuple{en}; recursive::Bool=false) where {an, bn, cn, dn, en} =
+    recursive ? reduce(merge_recursive(a, b, c, d, e)) : reduce(merge,(a, b, c, d, e))
+merge(a::NamedTuple{an}, b::NamedTuple{bn}, c::NamedTuple{cn}, d::NamedTuple{dn}, e::NamedTuple{en}, f::NamedTuple{fn}; recursive::Bool=false) where {an, bn, cn, dn, en, fn} =
+    recursive ? reduce(merge_recursive(a, b, c, d, e, f)) : reduce(merge,(a, b, c, d, e, f))
+merge(a::NamedTuple{an}, b::NamedTuple{bn}, c::NamedTuple{cn}, d::NamedTuple{dn}, e::NamedTuple{en}, f::NamedTuple{fn}, g::NamedTuple{gn}; recursive::Bool=false) where {an, bn, cn, dn, en, fn, gn} =
+    recursive ? reduce(merge_recursive(a, b, c, d, e, f, g)) : reduce(merge,(a, b, c, d, e, f, g))
 
 """
-    rec_merge(nt1, nt2)
-    rec_merge(nt1, nt2, nt3, ..)
+    merge_recursive(nt1, nt2)
+    merge_recursive(nt1, nt2, nt3, ..)
 
-Recurssively merge namedtuples. Fieldnames and values in nt2 and its sub-namedtuples
-    are all kept, with those only appear in nt1.
+Recursively merge namedtuples. Where more than one of the namedtuple args share the same fieldname (same key),
+    the leftmost argument's key's value will be propogated. Where each namedtuple has distinct fieldnames (keys),
+    all of named fields will be gathered with their respective values. The named fields will appear in the same
+    order they are encountered (leftmost arg, second leftmost arg, .., second rightmost arg, rightmost arg).
+
+If there are no nested namedtuples, `merge(nt1, nts..., recursive=true)` is the same as `merge(nt1, nts...)`.
+
+
+```
+nt1 = (a = "one", c = "three")
+nt2 = (a = 1, b = 2, c = 3)
+
+merge(nt1, nt2, recursive=true) === merge(nt1, nt2)
+merge(nt2, nt1, recursive=true) === merge(nt2, nt1)
+
+merge(nt1, nt2) === (a = 1, c = 3, b = 2)
+merge(nt2, nt1) === (a = "one", b = 2, c = "three")
+
+nt3 = (a = "one", c = (b = "two", c = "three"))
+nt4 = (a = 1, b = 2, c = 3)
+
+```
 
 see: [`merge`](@ref)
-"""
-rec_merge(nt::NamedTuple) = nt
+""" merge_recursive
 
-rec_merge(::NotPresent, ::NotPresent) = NotPresent()
-rec_merge(x, ::NotPresent) = x
-rec_merge(np::NotPresent, x) = rec_merge(x, np)
-rec_merge(x, y) = y
-function rec_merge(nt1::NamedTuple, nt2::NamedTuple)
+merge_recursive(nt::NamedTuple) = nt
+
+merge_recursive(::Missing, ::Missing) = missing
+merge_recursive(x, ::Missing) = x
+merge_recursive(m::Missing, x) = merge_recursive(x, m)
+merge_recursive(x, y) = y
+function merge_recursive(nt1::NamedTuple, nt2::NamedTuple)
     all_keys = union(keys(nt1), keys(nt2))
     gen = Base.Generator(all_keys) do key
-        v1 = get(nt1, key, NotPresent())
-        v2 = get(nt2, key, NotPresent())
-        key => rec_merge(v1, v2)
+        v1 = get(nt1, key, missing)
+        v2 = get(nt2, key, missing)
+        key => merge_recursive(v1, v2)
     end
     return (; gen...)
 end
 
-rec_merge(nt1::NamedTuple, nt2::NamedTuple, nts...) = rec_merge(rec_merge(nt1, nt2), nts...)
+merge_recursive(nt1::NamedTuple, nt2::NamedTuple, nts...) = merge_recursive(merge_recursive(nt1, nt2), nts...)
 
 """
     split(namedtuple, symbol(s)|Tuple)
