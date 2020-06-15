@@ -274,6 +274,8 @@ If there are no nested namedtuples, `merge(nt1, nts...)` is the same as `merge(n
 
 see: [`delete!`](@ref)
 """
+merge(::Type{T1}; recursive::Bool=false) where {N1,T1<:NamedTuple{N1}} =
+    namedtuple((N1...,))
 merge(::Type{T1}, ::Type{T2}; recursive::Bool=false) where {N1,N2,T1<:NamedTuple{N1},T2<:NamedTuple{N2}} =
     recursive ? merge_recursive(T1, T2) : namedtuple((unique((N1..., N2...,))...,))
 merge(::Type{T1}, ::Type{T2}, ::Type{T3}; recursive::Bool=false) where {N1,N2,N3,T1<:NamedTuple{N1},T2<:NamedTuple{N2},T3<:NamedTuple{N3}} =
@@ -289,6 +291,9 @@ merge(::Type{T1}, ::Type{T2}, ::Type{T3}, ::Type{T4}, ::Type{T5}, ::Type{T6}, ::
 
 # merge(nt1::T1, nt2::T2) where {T1<:NamedTuple, T2<:NamedTuple} is already defined
 
+merge(a::NamedTuple{an}; recursive::Bool=false) where {an} = a
+merge(a::NamedTuple{an}, b::NamedTuple{bn}; recursive::Bool=false) where {an, bn} =
+    recursive ? reduce(merge_recursive,(a, b)) : reduce(merge,(a, b))
 merge(a::NamedTuple{an}, b::NamedTuple{bn}, c::NamedTuple{cn}; recursive::Bool=false) where {an, bn, cn} =
     recursive ? reduce(merge_recursive,(a, b, c)) : reduce(merge,(a, b, c))
 merge(a::NamedTuple{an}, b::NamedTuple{bn}, c::NamedTuple{cn}, d::NamedTuple{dn}; recursive::Bool=false) where {an, bn, cn, dn} =
