@@ -290,15 +290,15 @@ merge(::Type{T1}, ::Type{T2}, ::Type{T3}, ::Type{T4}, ::Type{T5}, ::Type{T6}, ::
 # merge(nt1::T1, nt2::T2) where {T1<:NamedTuple, T2<:NamedTuple} is already defined
 
 merge(a::NamedTuple{an}, b::NamedTuple{bn}, c::NamedTuple{cn}; recursive::Bool=false) where {an, bn, cn} =
-    recursive ? reduce(merge_recursive(a, b, c)) : reduce(merge,(a, b, c))
+    recursive ? reduce(merge_recursive,(a, b, c)) : reduce(merge,(a, b, c))
 merge(a::NamedTuple{an}, b::NamedTuple{bn}, c::NamedTuple{cn}, d::NamedTuple{dn}; recursive::Bool=false) where {an, bn, cn, dn} =
-    recursive ? reduce(merge_recursive(a, b, c, d)) : reduce(merge,(a, b, c, d))
+    recursive ? reduce(merge_recursive,(a, b, c, d)) : reduce(merge,(a, b, c, d))
 merge(a::NamedTuple{an}, b::NamedTuple{bn}, c::NamedTuple{cn}, d::NamedTuple{dn}, e::NamedTuple{en}; recursive::Bool=false) where {an, bn, cn, dn, en} =
-    recursive ? reduce(merge_recursive(a, b, c, d, e)) : reduce(merge,(a, b, c, d, e))
+    recursive ? reduce(merge_recursive,(a, b, c, d, e)) : reduce(merge,(a, b, c, d, e))
 merge(a::NamedTuple{an}, b::NamedTuple{bn}, c::NamedTuple{cn}, d::NamedTuple{dn}, e::NamedTuple{en}, f::NamedTuple{fn}; recursive::Bool=false) where {an, bn, cn, dn, en, fn} =
-    recursive ? reduce(merge_recursive(a, b, c, d, e, f)) : reduce(merge,(a, b, c, d, e, f))
+    recursive ? reduce(merge_recursive,(a, b, c, d, e, f)) : reduce(merge,(a, b, c, d, e, f))
 merge(a::NamedTuple{an}, b::NamedTuple{bn}, c::NamedTuple{cn}, d::NamedTuple{dn}, e::NamedTuple{en}, f::NamedTuple{fn}, g::NamedTuple{gn}; recursive::Bool=false) where {an, bn, cn, dn, en, fn, gn} =
-    recursive ? reduce(merge_recursive(a, b, c, d, e, f, g)) : reduce(merge,(a, b, c, d, e, f, g))
+    recursive ? reduce(merge_recursive,(a, b, c, d, e, f, g)) : reduce(merge,(a, b, c, d, e, f, g))
 
 """
     merge_recursive(nt1, nt2)
